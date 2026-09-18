@@ -58,6 +58,8 @@ a.syl:hover{text-decoration:underline}
 .cal-cell.has{cursor:pointer;background:#e8f1fa;color:var(--blue-d);font-weight:600;border-color:#d3e4f5}
 .cal-cell.has:hover{border-color:var(--blue);box-shadow:0 0 0 2px rgba(22,96,168,.15)}
 .cal-cell.h1{background:#e3eefb}.cal-cell.h2{background:#c6ddf5}.cal-cell.h3{background:#a3c8ee;color:#0d4275}.cal-cell.h4{background:#7aaee4;color:#fff}
+.cal-cell.has.past{background:#fbeae8;color:#b3544a;border-color:#f2d8d4}
+.cal-cell.has.past:hover{border-color:#c2372e;box-shadow:0 0 0 2px rgba(194,55,46,.12)}
 .modal-mask{position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:100;display:none;align-items:flex-start;justify-content:center;padding:4vh 16px}
 .modal{background:#fff;border-radius:12px;max-width:960px;width:100%;max-height:86vh;display:flex;flex-direction:column;box-shadow:0 12px 40px rgba(16,24,40,.25)}
 .modal-head{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line)}
@@ -233,7 +235,7 @@ function setView(v){
   $('#view-cal').style.display = v === 'cal' ? 'block' : 'none';
   $('#day-btns').style.display = v === 'cal' ? 'none' : '';
   closePanel();
-  if (v === 'cal') renderCal();
+  if (v === 'cal'){ calWeek = curWeek; renderCal(); }
   setSticky();
 }
 $('#v-list').addEventListener('click', () => setView('list'));
@@ -242,6 +244,7 @@ $('#v-cal').addEventListener('click', () => setView('cal'));
 function renderCal(){
   const nowD = new Date();
   const today = ((nowD.getDay() + 6) % 7) + 1;
+  const today0 = new Date(nowD.getFullYear(), nowD.getMonth(), nowD.getDate());
   const inSem = nowD >= SEM_START && (Math.floor((nowD - SEM_START) / 86400000) < MAXW * 7);
   const showToday = inSem && calWeek === curWeek;
   $('#wk-label').textContent = `第${calWeek}周 ${wkDate(calWeek, 1)} ~ ${wkDate(calWeek, 7)}`;
@@ -268,7 +271,9 @@ function renderCal(){
       const arr = grid[p] && grid[p][d] ? [...grid[p][d]] : [];
       if (!arr.length){ html += '<div class="cal-cell"></div>'; continue; }
       const h = arr.length >= 10 ? 'h4' : arr.length >= 5 ? 'h3' : arr.length >= 2 ? 'h2' : 'h1';
-      html += `<div class="cal-cell has ${h}" data-d="${d}" data-p="${p}" title="第${calWeek}周 ${DAYN[d]} 第${p}节 · ${arr.length} 门课">${arr.length}</div>`;
+      const cellD = new Date(SEM_START); cellD.setDate(cellD.getDate() + (calWeek - 1) * 7 + (d - 1));
+      const past = cellD < today0 ? ' past' : '';
+      html += `<div class="cal-cell has ${h}${past}" data-d="${d}" data-p="${p}" title="第${calWeek}周 ${DAYN[d]}(${wkDate(calWeek, d)}) 第${p}节 · ${arr.length} 门课">${arr.length}</div>`;
     }
   }
   $('#cal-grid').innerHTML = html;
