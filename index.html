@@ -53,7 +53,9 @@ a.syl:hover{text-decoration:underline}
 .cal-grid .hd .dt{font-size:11px;font-weight:400;color:#6b7280}
 .cal-grid .hd.today{background:var(--blue);color:#fff}
 .cal-grid .hd.today .dt{color:#dceafd}
-.cal-grid .tm{display:flex;align-items:center;justify-content:center;font-size:11.5px;color:var(--muted);background:#f2f5f9;border-radius:6px}
+.cal-grid .tm{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;padding:3px 0;background:#f2f5f9;border-radius:6px}
+.cal-grid .tm b{font-size:11.5px;font-weight:600;color:#475569;line-height:1.2}
+.cal-grid .tm span{font-size:10px;color:#94a3b8;line-height:1.2}
 .cal-cell{min-height:40px;border-radius:6px;background:#f7f9fc;border:1px solid transparent;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--muted);cursor:default}
 .cal-cell.has{cursor:pointer;background:#e8f1fa;color:var(--blue-d);font-weight:600;border-color:#d3e4f5}
 .cal-cell.has:hover{border-color:var(--blue);box-shadow:0 0 0 2px rgba(22,96,168,.15)}
@@ -226,6 +228,9 @@ const SEM_START = new Date(2026, 8, 7); // 2026-09-07（周一）校历第1周�
 const curWeek = Math.min(Math.max(Math.floor((Date.now() - SEM_START) / 604800000) + 1, 1), MAXW);
 let calWeek = curWeek;
 const wkDate = (w, d) => { const t = new Date(SEM_START); t.setDate(t.getDate() + (w - 1) * 7 + (d - 1)); return (t.getMonth() + 1) + '/' + t.getDate(); };
+// 复旦大学统一作息时间表
+const SEC_T = {1:'08:00',2:'08:55',3:'09:55',4:'10:50',5:'11:45',6:'13:30',7:'14:25',8:'15:25',9:'16:20',10:'17:15',11:'18:30',12:'19:25',13:'20:20',14:'21:15'};
+const SEC_END = {1:'08:45',2:'09:40',3:'10:40',4:'11:35',5:'12:30',6:'14:15',7:'15:10',8:'16:10',9:'17:05',10:'18:00',11:'19:15',12:'20:10',13:'21:05',14:'22:00'};
 
 function setView(v){
   view = v;
@@ -265,15 +270,22 @@ function renderCal(){
     const isT = d === today && showToday;
     html += `<div class="hd${isT ? ' today' : ''}">${DAYN[d]}<span class="dt">${wkDate(calWeek, d)}${isT ? ' 今' : ''}</span></div>`;
   }
+  const nowMin = nowD.getHours() * 60 + nowD.getMinutes();
   for (let p = 1; p <= MAXSEC; p++){
-    html += `<div class="tm">${p}</div>`;
+    html += `<div class="tm"><b>${p}</b><span>${SEC_T[p] || ''}</span></div>`;
     for (let d = 1; d <= 7; d++){
       const arr = grid[p] && grid[p][d] ? [...grid[p][d]] : [];
       if (!arr.length){ html += '<div class="cal-cell"></div>'; continue; }
       const h = arr.length >= 10 ? 'h4' : arr.length >= 5 ? 'h3' : arr.length >= 2 ? 'h2' : 'h1';
       const cellD = new Date(SEM_START); cellD.setDate(cellD.getDate() + (calWeek - 1) * 7 + (d - 1));
-      const past = cellD < today0 ? ' past' : '';
-      html += `<div class="cal-cell has ${h}${past}" data-d="${d}" data-p="${p}" title="第${calWeek}周 ${DAYN[d]}(${wkDate(calWeek, d)}) 第${p}节 · ${arr.length} 门课">${arr.length}</div>`;
+      let past = '';
+      if (cellD < today0){
+        past = ' past';
+      } else if (!(cellD > today0)){
+        const eb = SEC_END[p].split(':');
+        if (+eb[0] * 60 + +eb[1] < nowMin) past = ' past';
+      }
+      html += `<div class="cal-cell has ${h}${past}" data-d="${d}" data-p="${p}" title="第${calWeek}周 ${DAYN[d]}(${wkDate(calWeek, d)}) 第${p}节${SEC_T[p] ? ' ' + SEC_T[p] + '～' + SEC_END[p] : ''} · ${arr.length} 门课">${arr.length}</div>`;
     }
   }
   $('#cal-grid').innerHTML = html;
