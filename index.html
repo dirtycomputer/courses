@@ -43,14 +43,16 @@ a.syl:hover{text-decoration:underline}
 .view-switch button.on{background:var(--blue);color:#fff;font-weight:500}
 .cal-wrap{display:none}
 .cal-head{display:flex;align-items:center;gap:10px;margin:12px 2px}
-.cal-head .wk{font-size:15px;font-weight:600;color:var(--blue);min-width:76px;text-align:center}
+.cal-head .wk{font-size:14px;font-weight:600;color:var(--blue);min-width:170px;text-align:center}
 .cal-head button{padding:6px 12px;border:1px solid var(--line);background:#fff;border-radius:8px;font-size:14px;cursor:pointer}
 .cal-head button:disabled{opacity:.35;cursor:default}
 .cal-head .hint{font-size:12px;color:var(--muted);margin-left:auto}
 .cal-scroll{overflow-x:auto;border-radius:10px;box-shadow:0 1px 3px rgba(16,24,40,.08);background:#fff}
 .cal-grid{display:grid;grid-template-columns:52px repeat(7,minmax(88px,1fr));gap:3px;padding:10px;min-width:760px}
-.cal-grid .hd{text-align:center;font-size:12.5px;font-weight:600;color:#374151;padding:6px 0;background:#eef2f7;border-radius:6px}
+.cal-grid .hd{display:flex;flex-direction:column;align-items:center;gap:1px;font-size:12.5px;font-weight:600;color:#374151;padding:5px 0 4px;background:#eef2f7;border-radius:6px}
+.cal-grid .hd .dt{font-size:11px;font-weight:400;color:#6b7280}
 .cal-grid .hd.today{background:var(--blue);color:#fff}
+.cal-grid .hd.today .dt{color:#dceafd}
 .cal-grid .tm{display:flex;align-items:center;justify-content:center;font-size:11.5px;color:var(--muted);background:#f2f5f9;border-radius:6px}
 .cal-cell{min-height:40px;border-radius:6px;background:#f7f9fc;border:1px solid transparent;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--muted);cursor:default}
 .cal-cell.has{cursor:pointer;background:#e8f1fa;color:var(--blue-d);font-weight:600;border-color:#d3e4f5}
@@ -218,8 +220,10 @@ $('#day-btns').addEventListener('click', e => {
 // ---------- 课表日历视图 ----------
 const MAXW = Math.max(...DATA.flatMap(c => c.slots.flatMap(s => s.w)));
 const MAXSEC = Math.max(...DATA.flatMap(c => c.slots.map(s => s.e)));
-const SEM_START = new Date(2026, 8, 14); // 2026-09-14（周一）开学
-let calWeek = Math.min(Math.max(Math.floor((Date.now() - SEM_START) / 604800000) + 1, 1), MAXW);
+const SEM_START = new Date(2026, 8, 7); // 2026-09-07（周一）校历第1周上课日
+const curWeek = Math.min(Math.max(Math.floor((Date.now() - SEM_START) / 604800000) + 1, 1), MAXW);
+let calWeek = curWeek;
+const wkDate = (w, d) => { const t = new Date(SEM_START); t.setDate(t.getDate() + (w - 1) * 7 + (d - 1)); return (t.getMonth() + 1) + '/' + t.getDate(); };
 
 function setView(v){
   view = v;
@@ -236,7 +240,11 @@ $('#v-list').addEventListener('click', () => setView('list'));
 $('#v-cal').addEventListener('click', () => setView('cal'));
 
 function renderCal(){
-  $('#wk-label').textContent = `第${calWeek}周`;
+  const nowD = new Date();
+  const today = ((nowD.getDay() + 6) % 7) + 1;
+  const inSem = nowD >= SEM_START && (Math.floor((nowD - SEM_START) / 86400000) < MAXW * 7);
+  const showToday = inSem && calWeek === curWeek;
+  $('#wk-label').textContent = `第${calWeek}周 ${wkDate(calWeek, 1)} ~ ${wkDate(calWeek, 7)}`;
   $('#wk-prev').disabled = calWeek <= 1;
   $('#wk-next').disabled = calWeek >= MAXW;
   const poolC = pool();
@@ -249,12 +257,11 @@ function renderCal(){
           (grid[p] = grid[p] || {});
           (grid[p][s.d] = grid[p][s.d] || new Set()).add(c);
         }
-  const nowD = new Date();
-  const today = ((nowD.getDay() + 6) % 7) + 1;
-  const inSem = nowD >= SEM_START && (Math.floor((nowD - SEM_START) / 86400000) < MAXW * 7);
   let html = '<div></div>';
-  for (let d = 1; d <= 7; d++)
-    html += `<div class="hd${d === today && inSem ? ' today' : ''}">${DAYN[d]}${d === today && inSem ? '·今' : ''}</div>`;
+  for (let d = 1; d <= 7; d++){
+    const isT = d === today && showToday;
+    html += `<div class="hd${isT ? ' today' : ''}">${DAYN[d]}<span class="dt">${wkDate(calWeek, d)}${isT ? ' 今' : ''}</span></div>`;
+  }
   for (let p = 1; p <= MAXSEC; p++){
     html += `<div class="tm">${p}</div>`;
     for (let d = 1; d <= 7; d++){
@@ -291,7 +298,7 @@ function openPanel(d, p){
   fillSel('#mp-xq', mpPool.map(c => c.xq), '全部校区');
   fillSel('#mp-yx', mpPool.map(c => c.yx), '全部开课单位');
   $('#mp-cc').value = ''; $('#mp-xq').value = ''; $('#mp-yx').value = '';
-  $('#mp-title').textContent = `第${calWeek}周 · ${DAYN[d]} · 第${p}节`;
+  $('#mp-title').textContent = `第${calWeek}周 · ${DAYN[d]} ${wkDate(calWeek, d)} · 第${p}节`;
   $('#mp-sub').textContent = `该时段开课（含跨节次课程）`;
   $('#mask').style.display = 'flex';
   document.body.style.overflow = 'hidden';
