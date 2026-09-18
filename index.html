@@ -32,6 +32,7 @@ th{position:sticky;top:140px;background:#eef2f7;font-weight:600;font-size:12.5px
 tbody tr:hover{background:#f2f7fd}
 td.kcmc-cell{white-space:normal;min-width:150px;max-width:230px;font-weight:500}
 td.sj-cell{white-space:normal;min-width:200px;max-width:330px;color:#374151;font-size:12.5px;line-height:1.55}
+td.rkjs-cell{white-space:normal;min-width:64px;max-width:110px}
 td.name-sub{display:block;font-weight:400;color:var(--muted);font-size:12px;margin-top:2px}
 a.syl{color:var(--blue);text-decoration:none;font-weight:500}
 a.syl:hover{text-decoration:underline}
@@ -106,7 +107,7 @@ function render(){
     rows.push(`<tr>
       <td>${esc(c.kcdm)}</td>
       <td class="kcmc-cell">${esc(c.kcmc)}${c.bj?`<span class="name-sub">${esc(c.bj)}班</span>`:''}</td>
-      <td>${esc(c.rkjs)||'—'}</td>
+      <td class="rkjs-cell">${esc(c.rkjs)||'—'}</td>
       <td>${c.xf}</td>
       <td>${esc(c.kccc)||'—'}</td>
       <td class="sj-cell">${esc(c.sjdd)||'—'}</td>
