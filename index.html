@@ -64,7 +64,7 @@ a.syl:hover{text-decoration:underline}
 .cal-cell.has.past:hover{border-color:#c2372e;box-shadow:0 0 0 2px rgba(194,55,46,.12)}
 .modal-mask{position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:100;display:none;align-items:flex-start;justify-content:center;padding:4vh 16px}
 .modal{background:#fff;border-radius:12px;max-width:960px;width:100%;max-height:86vh;display:flex;flex-direction:column;box-shadow:0 12px 40px rgba(16,24,40,.25)}
-.modal-head{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line)}
+.modal-head{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:14px 18px;border-bottom:1px solid var(--line)}
 .modal-head .t{font-size:16px;font-weight:600;color:var(--blue-d)}
 .modal-head .sub{font-size:12.5px;color:var(--muted)}
 .modal-head .x{margin-left:auto;border:1px solid var(--line);background:#fff;border-radius:8px;width:30px;height:30px;font-size:15px;cursor:pointer;color:var(--muted)}
@@ -84,6 +84,18 @@ a.syl:hover{text-decoration:underline}
 .mp-item .js{color:var(--muted);font-size:12px;margin-top:2px}
 footer{margin-top:18px;font-size:12px;color:var(--muted);line-height:1.8}
 @media(max-width:640px){header{padding:16px}}
+/* 小屏（手机）：页面不横向滚动，表格/日历在各自容器内横滚，顶栏始终全宽 */
+@media(max-width:1240px){
+  header{min-width:0}
+  .filters{min-width:0}
+  .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  th{position:static;top:auto}
+}
+@media(max-width:640px){
+  .cal-grid{grid-template-columns:42px repeat(7,minmax(70px,1fr));min-width:560px}
+  .cal-head .hint{display:none}
+  .cal-head .wk{font-size:13px;min-width:150px}
+}
 </style>
 </head>
 <body>
@@ -207,7 +219,7 @@ function pool(){
     (!state.xw || c.syxw === state.xw) &&
     (!q || c.kcmc.toLowerCase().includes(q) || c.kcdm.toLowerCase().includes(q) || c.rkjs.toLowerCase().includes(q)));
 }
-let view = 'list';
+let view = new URLSearchParams(location.search).get('view') === 'cal' ? 'cal' : 'list';
 function refresh(){ render(); if (view === 'cal') renderCal(); }
 
 let tmr;
@@ -355,6 +367,7 @@ const setSticky = () => {
   document.querySelectorAll('th').forEach(x => x.style.top = t);
 };
 setSticky(); window.addEventListener('resize', setSticky);
+if (view !== 'list') setView(view);
 </script>
 </body>
 </html>
