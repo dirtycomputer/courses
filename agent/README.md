@@ -1,6 +1,6 @@
 # Agent 查询工具
 
-这个目录提供一个零依赖、只读的课程查询层，直接解析仓库根目录 `index.html` 中的 `const DATA = [...]`。课程数据仍只有一份；网页更新后，CLI/API 会自动读取新数据。
+这个目录提供一个只读的课程查询层。CLI/本地 API 直接解析仓库根目录 `index.html` 中的 `const DATA = [...]`；Vercel 云端 API 默认读取 GitHub Raw 上的当前 `main` 数据，因此无需维护第二份课程数据库。
 
 ## CLI
 
@@ -18,7 +18,7 @@ node agent/query.mjs --q 人工智能 --jsonl
 
 `day` 可使用 `1..7`（周一到周日）或中文星期文本。`week` 和 `period` 会尝试从原始 `schedule` 文本中解析周次和节次；无法识别的时间格式不会被当作匹配。
 
-## HTTP API
+## 本地 HTTP API
 
 ```bash
 node agent/server.mjs
@@ -41,24 +41,54 @@ COURSES_PORT=9000 COURSES_HOST=0.0.0.0 node agent/server.mjs
 COURSES_HTML=/path/to/index.html node agent/query.mjs --q 统计
 ```
 
-## Agent 集成
+## Vercel HTTPS API
 
-`agent/openapi.json` 提供 OpenAPI 3.1 描述。支持 OpenAPI function/tool import 的 agent 可以直接注册 `/courses`、`/courses/{id}`、`/facets` 和 `/schema`。
+仓库根目录的 `api/`、`package.json` 和 `vercel.json` 可直接部署到 Vercel。部署完成后提供：
 
-返回字段统一成英文机器字段：
+```text
+GET /health
+GET /courses
+GET /courses/{id}
+GET /facets
+GET /schema
+GET /openapi.json
+POST /api/mcp
+```
 
-- `id`
-- `course_code`
-- `course_name`
-- `class_no`
-- `teacher`
-- `credits`
-- `hours`
-- `level`
-- `degree_type`
-- `department`
-- `campus`
-- `schedule`
-- `syllabus_url`
+云端默认数据源：
 
-API 是只读的，不修改课程数据。
+```text
+https://raw.githubusercontent.com/dirtycomputer/courses/main/index.html
+```
+
+如需切换数据源，可设置 `COURSES_SOURCE_URL`；`COURSES_CACHE_TTL_MS` 可覆盖默认 5 分钟的内存缓存时间。
+
+## OpenAPI Agent 集成
+
+本地 `agent/openapi.json` 提供 OpenAPI 3.1 描述；部署后建议使用动态的 `https://<deployment>/openapi.json`，其中 `servers` 会自动指向当前部署域名。
+
+## MCP Agent 集成
+
+远程 MCP endpoint：
+
+```text
+https://<deployment>/api/mcp
+```
+
+MCP Server 使用官方 `@modelcontextprotocol/server` v2 的 Streamable HTTP handler，同时兼容其默认的 legacy stateless 流量。提供四个工具：`search_courses`、`get_course`、`list_course_facets`、`get_course_schema`。
+
+Codex CLI 示例：
+
+```bash
+codex mcp add fudan-courses --url https://<deployment>/api/mcp
+```
+
+Claude Code 示例：
+
+```bash
+claude mcp add --transport http fudan-courses https://<deployment>/api/mcp
+```
+
+返回字段统一为英文机器字段：`id`、`course_code`、`course_name`、`class_no`、`teacher`、`credits`、`hours`、`level`、`degree_type`、`department`、`campus`、`schedule`、`syllabus_url`。
+
+所有查询接口均为只读，不修改课程数据。
