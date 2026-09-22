@@ -1,5 +1,5 @@
-import { createMcpHandler } from 'mcp-handler';
-import { z } from 'zod';
+import { createMcpHandler, McpServer } from '@modelcontextprotocol/server';
+import * as z from 'zod/v4';
 import {
   buildFacets,
   COURSE_SCHEMA,
@@ -8,7 +8,7 @@ import {
   paginate,
 } from './_shared.mjs';
 
-const searchShape = {
+const searchSchema = z.object({
   q: z.string().optional().describe('Free-text search across course code, name, teacher, department, campus and schedule'),
   teacher: z.string().optional(),
   campus: z.string().optional(),
@@ -20,7 +20,7 @@ const searchShape = {
   period: z.number().int().min(1).max(20).optional(),
   limit: z.number().int().min(1).max(50).default(20),
   offset: z.number().int().min(0).default(0),
-};
+});
 
 function toolJson(value) {
   return {
@@ -29,53 +29,58 @@ function toolJson(value) {
   };
 }
 
-const handler = createMcpHandler(
-  (server) => {
-    server.tool(
-      'search_courses',
-      'Search and filter Fudan graduate courses by keyword, teacher, campus, department, level, weekday, teaching week, and class period.',
-      searchShape,
-      async (params) => {
-        const courses = await getCourses();
-        return toolJson(paginate(filterCourses(courses, params), params));
-      },
-    );
+function createServer() {
+  const server = new McpServer({
+    name: 'fudan-courses',
+    version: '1.1.0',
+  });
 
-    server.tool(
-      'get_course',
-      'Get one course by its stable course_code:class_no id.',
-      { id: z.string().min(1) },
-      async ({ id }) => {
-        const courses = await getCourses();
-        const course = courses.find((item) => item.id === id);
-        return course
-          ? toolJson(course)
-          : { isError: true, content: [{ type: 'text', text: `Course not found: ${id}` }] };
-      },
-    );
-
-    server.tool(
-      'list_course_facets',
-      'List valid campus, department, level, and degree-type values for planning a course query.',
-      {},
-      async () => toolJson(buildFacets(await getCourses())),
-    );
-
-    server.tool(
-      'get_course_schema',
-      'Describe the normalized course fields returned by this server.',
-      {},
-      async () => toolJson(COURSE_SCHEMA),
-    );
-  },
-  {
-    serverInfo: {
-      name: 'fudan-courses',
-      version: '1.1.0',
+  server.registerTool(
+    'search_courses',
+    {
+      description: 'Search and filter Fudan graduate courses by keyword, teacher, campus, department, level, weekday, teaching week, and class period.',
+      inputSchema: searchSchema,
     },
-  },
-  { basePath: '/api' },
-);
+    async (params) => {
+      const courses = await getCourses();
+      return toolJson(paginate(filterCourses(courses, params), params));
+    },
+  );
 
-export { handler as GET, handler as POST, handler as DELETE };
-export default { fetch: handler };
+  server.registerTool(
+    'get_course',
+    {
+      description: 'Get one course by its stable course_code:class_no id.',
+      inputSchema: z.object({ id: z.string().min(1) }),
+    },
+    async ({ id }) => {
+      const courses = await getCourses();
+      const course = courses.find((item) => item.id === id);
+      return course
+        ? toolJson(course)
+        : { isError: true, content: [{ type: 'text', text: `Course not found: ${id}` }] };
+    },
+  );
+
+  server.registerTool(
+    'list_course_facets',
+    {
+      description: 'List valid campus, department, level, and degree-type values for planning a course query.',
+      inputSchema: z.object({}),
+    },
+    async () => toolJson(buildFacets(await getCourses())),
+  );
+
+  server.registerTool(
+    'get_course_schema',
+    {
+      description: 'Describe the normalized course fields returned by this server.',
+      inputSchema: z.object({}),
+    },
+    async () => toolJson(COURSE_SCHEMA),
+  );
+
+  return server;
+}
+
+export default createMcpHandler(createServer);
