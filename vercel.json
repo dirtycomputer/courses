@@ -1,0 +1,12 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    { "source": "/health", "destination": "/api/health" },
+    { "source": "/courses", "destination": "/api/courses" },
+    { "source": "/courses/(?<id>[^/]+)", "destination": "/api/courses?id=$id" },
+    { "source": "/facets", "destination": "/api/facets" },
+    { "source": "/schema", "destination": "/api/schema" },
+    { "source": "/openapi.json", "destination": "/api/openapi" },
+    { "source": "/mcp", "destination": "/api/mcp" }
+  ]
+}
