@@ -7,7 +7,7 @@
     "node": "24.x"
   },
   "dependencies": {
-    "mcp-handler": "latest",
-    "zod": "latest"
+    "@modelcontextprotocol/server": "2.0.0",
+    "zod": "^4.0.0"
   }
 }
