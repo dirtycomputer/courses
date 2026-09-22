@@ -15,7 +15,7 @@ const DAY_NAMES = {
   '7': ['周日', '周天', '星期日', '星期天'],
 };
 
-function extractDataJson(html) {
+export function extractDataJson(html) {
   const marker = 'const DATA =';
   const markerAt = html.indexOf(marker);
   if (markerAt < 0) throw new Error('Cannot find "const DATA =" in index.html');
@@ -56,6 +56,22 @@ export async function loadRawCourses(indexPath = process.env.COURSES_HTML || DEF
   return rows;
 }
 
+export function parseRawCoursesFromHtml(html) {
+  const rows = JSON.parse(extractDataJson(html));
+  if (!Array.isArray(rows)) throw new Error('DATA is not an array');
+  return rows;
+}
+
+export async function loadRawCoursesFromUrl(url) {
+  const response = await fetch(url, {
+    headers: { 'user-agent': 'fudan-courses-agent/1.1' },
+  });
+  if (!response.ok) {
+    throw new Error(`Cannot fetch course source: ${response.status} ${response.statusText}`);
+  }
+  return parseRawCoursesFromHtml(await response.text());
+}
+
 function firstHttpUrl(row) {
   for (const value of Object.values(row)) {
     if (typeof value === 'string' && /^https?:\/\//i.test(value)) return value;
@@ -83,6 +99,10 @@ export function normalizeCourse(row) {
 
 export async function loadCourses(indexPath) {
   return (await loadRawCourses(indexPath)).map(normalizeCourse);
+}
+
+export async function loadCoursesFromUrl(url) {
+  return (await loadRawCoursesFromUrl(url)).map(normalizeCourse);
 }
 
 function text(value) {
